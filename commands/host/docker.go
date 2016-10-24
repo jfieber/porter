@@ -195,6 +195,7 @@ func startContainers(environmentStr, regionStr string) {
 
 			// log driver with defaults since facility override doesn't work
 			"--log-driver=syslog",
+			"--log-opt", "syslog-facility=local5",
 
 			// try to keep the container alive
 			// CIS Docker Benchmark 1.11.0 5.14
