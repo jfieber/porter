@@ -45,9 +45,10 @@ func (recv *PackCmd) Execute(args []string) bool {
 
 	log := logger.CLI("cmd", "build-pack")
 
-	commandSuccess := hook.Execute(log, constants.HookPrePack, "", nil, true)
+	commandSuccess := false
+	prehookSuccess := hook.Execute(log, constants.HookPrePack, "", nil, true)
 
-	if commandSuccess {
+	if prehookSuccess {
 		config, success := conf.GetConfig(log, true)
 		if !success {
 			os.Exit(1)
@@ -60,13 +61,17 @@ func (recv *PackCmd) Execute(args []string) bool {
 		commandSuccess = provision.Package(log, config)
 	}
 
-	commandSuccess = hook.Execute(log, constants.HookPostPack, "", nil, commandSuccess)
+	posthookSuccess := hook.Execute(log, constants.HookPostPack, "", nil, commandSuccess)
 
-	if !commandSuccess {
+	// Only consider posthookSuccess if both the prehook and command suceeded.
+	if prehookSuccess && commandSuccess {
+		if !posthookSuccess {
+			os.Exit(1)
+		}
+	} else {
 		os.Exit(1)
 	}
 
-	log.Info("Packaged service", "FilePath", constants.PayloadPath)
-
+	log.Info("Package complete", "FilePath", constants.PayloadPath)
 	return true
 }

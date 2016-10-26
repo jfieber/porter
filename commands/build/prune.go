@@ -112,17 +112,23 @@ func (recv *PruneCmd) Execute(args []string) bool {
 		os.Exit(1)
 	}
 
-	commandSuccess := hook.Execute(log, constants.HookPrePrune,
+	prehookSuccess := hook.Execute(log, constants.HookPrePrune,
 		provisionedEnv.Environment, provisionedEnv.Regions, true)
+	commandSuccess := false
 
-	if commandSuccess {
+	if prehookSuccess {
 		commandSuccess = prune.Do(log, config, env, keepCount, true, elbTag)
 	}
 
-	commandSuccess = hook.Execute(log, constants.HookPostPrune,
+	posthookSuccess := hook.Execute(log, constants.HookPostPrune,
 		provisionedEnv.Environment, provisionedEnv.Regions, commandSuccess)
 
-	if !commandSuccess {
+	// Only consider posthookSuccess if both the prehook and command suceeded.
+	if prehookSuccess && commandSuccess {
+		if !posthookSuccess {
+			os.Exit(1)
+		}
+	} else {
 		os.Exit(1)
 	}
 

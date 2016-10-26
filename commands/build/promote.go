@@ -94,17 +94,23 @@ func (recv *PromoteCmd) Execute(args []string) bool {
 		os.Exit(1)
 	}
 
-	commandSuccess := hook.Execute(log, constants.HookPrePromote,
+	prehookSuccess := hook.Execute(log, constants.HookPrePromote,
 		provisionedEnv.Environment, provisionedEnv.Regions, true)
+	commandSuccess := false
 
-	if commandSuccess {
+	if prehookSuccess {
 		commandSuccess = promote.Promote(log, config, provisionedEnv, elbType)
 	}
 
-	commandSuccess = hook.Execute(log, constants.HookPostPromote,
+	posthookSuccess := hook.Execute(log, constants.HookPostPromote,
 		provisionedEnv.Environment, provisionedEnv.Regions, commandSuccess)
 
-	if !commandSuccess {
+	// Only consider posthookSuccess if both the prehook and command suceeded.
+	if prehookSuccess && commandSuccess {
+		if !posthookSuccess {
+			os.Exit(1)
+		}
+	} else {
 		os.Exit(1)
 	}
 
